@@ -46,6 +46,12 @@ jobs:
         run: |
           cd k0s && ls -la ../${{ github.event.inputs.patchDir }}/*.patch
 
+      - name: Setup upterm session (ssh)
+        uses: lhotari/action-upterm@v1
+        if: failure()
+        with:
+          wait-timeout-minutes: 5
+
       - name: Apply Patches
         run: |
           cd k0s && git am -3 < ../${{ github.event.inputs.patchDir }}/*.patch

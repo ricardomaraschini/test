@@ -42,6 +42,7 @@ jobs:
           cd k0s && git am -3 < ../${{ github.event.inputs.patchDir }}/*.patch
 
       - name: Tag Embedded Cluster Release
+        run: |
           cd k0s && git tag ${{ github.event.inputs.tag }}-${{ github.event.inputs.versionSuffix }}
 
       - name: Setup Go

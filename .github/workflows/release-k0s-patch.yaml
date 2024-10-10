@@ -1,0 +1,57 @@
+name: Build and Release K0s Patch
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Upstream tag to be used as a base, patches will be applied on top of this tag, e.g. v1.30.0+k0s.0."
+        required: true
+      patchDir:
+        description: "The directory (in this repository) to read the patches from, e.g. 'k0s-patches/release-1.30'."
+        required: true
+        default: 'k0s-patches/release-1.30'
+      versionSuffix:
+        description: "The custom suffix for the compiled k0s version, e.g. ec.1."
+        required: true
+        default: 'ec.0'
+
+jobs:
+  build-and-release:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [
+          {name: ubuntu-latest, arch: amd64},
+          {name: ec-ubuntu-24.04-arm64, arch: arm64},
+        ]
+    runs-on: ${{ matrix.runner.name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Checkout Upstream
+        uses: actions/checkout@v4
+        with:
+          repository: k0sproject/k0s
+          ref: refs/tags/${{ github.event.inputs.tag }}
+          persist-credentials: false
+          path: k0s
+
+      - name: Apply Patches
+        run: |
+          cd k0s && git am -3 < ../${{ github.event.inputs.patchDir }}/*.patch
+
+      - name: Tag Embedded Cluster Release
+          cd k0s && git tag ${{ github.event.inputs.tag }}-${{ github.event.inputs.versionSuffix }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: k0s/go.mod
+          cache-dependency-path: k0s/go.sum
+
+      - name: Build k0s
+        run: |
+          make -C k0s bindata
+          make -C k0s --touch codegen
+          make -C k0s build

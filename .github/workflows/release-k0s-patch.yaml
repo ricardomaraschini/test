@@ -48,7 +48,6 @@ jobs:
 
       - name: Setup upterm session (ssh)
         uses: lhotari/action-upterm@v1
-        if: failure()
         with:
           wait-timeout-minutes: 5
 
